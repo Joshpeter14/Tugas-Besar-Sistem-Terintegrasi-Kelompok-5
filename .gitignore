@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.local
+.vercel/
+service-rekam/data/
+*.db
+*.db-wal
+*.db-shm
+.DS_Store
+Thumbs.db

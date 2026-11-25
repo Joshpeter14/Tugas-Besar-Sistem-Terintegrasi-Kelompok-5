@@ -1,0 +1,15 @@
+{
+  "name": "sistem-antrean-rekam-klinik",
+  "private": true,
+  "description": "Tugas Besar Sistem Terintegrasi: Sistem Antrean & Rekam Kunjungan Klinik/Puskesmas",
+  "type": "module",
+  "scripts": {
+    "install:all": "npm --prefix service-antrean install && npm --prefix service-rekam install",
+    "antrean": "npm --prefix service-antrean start",
+    "rekam": "npm --prefix service-rekam start",
+    "test": "node --test tests/integration.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}

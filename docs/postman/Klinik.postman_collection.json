@@ -1,0 +1,1501 @@
+{
+  "info": {
+    "name": "Sistem Antrean & Rekam Kunjungan Klinik",
+    "description": "Koleksi API Tugas Besar Sistem Terintegrasi.\n\n1. Ubah variable `antrean_url` ke URL Vercel dan `api_key` sesuai API_KEY.\n2. Jalankan folder **0. Skenario End-to-End** berurutan (Run collection) untuk mendemokan alur lengkap.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "x-api-key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "antrean_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "rekam_url",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "api_key",
+      "value": "ganti-dengan-kunci-rahasia"
+    },
+    {
+      "key": "poli_id",
+      "value": "1"
+    },
+    {
+      "key": "pasien_id",
+      "value": ""
+    },
+    {
+      "key": "antrean_id",
+      "value": ""
+    },
+    {
+      "key": "kunjungan_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Skenario End-to-End",
+      "description": "Jalankan berurutan. Membuktikan komunikasi GET, POST, PUT, DELETE antar service.",
+      "item": [
+        {
+          "name": "1. Health Service Antrean",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/health",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Health Service Rekam (cek koneksi ke Antrean)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/health",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Daftar pasien baru",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/pasien",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "pasien"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Budi Santoso\",\n  \"jenis_kelamin\": \"L\",\n  \"tanggal_lahir\": \"1990-01-01\",\n  \"no_hp\": \"081234567890\",\n  \"alamat\": \"Jl. Merdeka No. 1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "if (pm.response.code < 300) pm.collectionVariables.set('pasien_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Ambil nomor antrean di Poli Umum",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/antrean",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pasien_id\": \"{{pasien_id}}\",\n  \"poli_id\": \"{{poli_id}}\",\n  \"keluhan\": \"Demam 3 hari\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "if (pm.response.code < 300) pm.collectionVariables.set('antrean_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. [Rekam→Antrean POST] Panggil pasien berikutnya",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/antrean/panggil-berikutnya",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean",
+                "panggil-berikutnya"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"poli_id\": \"{{poli_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. [Rekam→Antrean GET+PUT] Buat rekam kunjungan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/kunjungan",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "kunjungan"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antrean_id\": \"{{antrean_id}}\",\n  \"dokter\": \"dr. Sari Wulandari\",\n  \"anamnesis\": \"Demam 3 hari, batuk\",\n  \"tekanan_darah\": \"120/80\",\n  \"suhu\": 38.2,\n  \"berat_badan\": 65,\n  \"diagnosa\": \"Infeksi saluran pernapasan atas\",\n  \"kode_icd10\": \"J06.9\",\n  \"tindakan\": \"Pemeriksaan fisik\",\n  \"resep\": \"Paracetamol 500mg 3x1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "if (pm.response.code < 300) pm.collectionVariables.set('kunjungan_id', pm.response.json().kunjungan.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7. Cek antrean sudah selesai",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/antrean/{{antrean_id}}",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean",
+                "{{antrean_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "8. [Rekam→Antrean GET] Riwayat pasien",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/pasien/{{pasien_id}}/riwayat",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "pasien",
+                "{{pasien_id}}",
+                "riwayat"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "9. Log integrasi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/log-integrasi",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "log-integrasi"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Service Antrean - Poli",
+      "item": [
+        {
+          "name": "List poli",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/poli",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "poli"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detail poli",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/poli/{{poli_id}}",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "poli",
+                "{{poli_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tambah poli",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/poli",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "poli"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kode\": \"D\",\n  \"nama\": \"Poli Lansia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ubah poli",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/poli/{{poli_id}}",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "poli",
+                "{{poli_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Poli Umum\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hapus poli",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/poli/4",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "poli",
+                "4"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,404,409]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Service Antrean - Pasien",
+      "item": [
+        {
+          "name": "List pasien",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/pasien",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "pasien"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cari pasien by NIK",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/pasien?nik=3201010101900001",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "pasien"
+              ],
+              "query": [
+                {
+                  "key": "nik",
+                  "value": "3201010101900001"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detail pasien",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/pasien/{{pasien_id}}",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "pasien",
+                "{{pasien_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tambah pasien",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/pasien",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "pasien"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Siti Aminah\",\n  \"nik\": \"3201014101950002\",\n  \"jenis_kelamin\": \"P\",\n  \"tanggal_lahir\": \"1995-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "if (pm.response.code < 300) pm.collectionVariables.set('pasien_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ubah pasien",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/pasien/{{pasien_id}}",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "pasien",
+                "{{pasien_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"no_hp\": \"089999999999\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hapus pasien",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/pasien/{{pasien_id}}",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "pasien",
+                "{{pasien_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Service Antrean - Antrean",
+      "item": [
+        {
+          "name": "List antrean (filter)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/antrean?poli_id={{poli_id}}&status=menunggu",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean"
+              ],
+              "query": [
+                {
+                  "key": "poli_id",
+                  "value": "{{poli_id}}"
+                },
+                {
+                  "key": "status",
+                  "value": "menunggu"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detail antrean",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/antrean/{{antrean_id}}",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean",
+                "{{antrean_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ambil nomor antrean",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/antrean",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pasien_id\": \"{{pasien_id}}\",\n  \"poli_id\": \"{{poli_id}}\",\n  \"keluhan\": \"Sakit kepala\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "if (pm.response.code < 300) pm.collectionVariables.set('antrean_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ubah keluhan",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/antrean/{{antrean_id}}",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean",
+                "{{antrean_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keluhan\": \"Sakit kepala dan mual\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Panggil berikutnya",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/antrean/panggil-berikutnya",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean",
+                "panggil-berikutnya"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"poli_id\": \"{{poli_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ubah status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/antrean/{{antrean_id}}/status",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean",
+                "{{antrean_id}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"menunggu\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Batalkan antrean",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{antrean_url}}/api/antrean/{{antrean_id}}",
+              "host": [
+                "{{antrean_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean",
+                "{{antrean_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Service Rekam Kunjungan",
+      "item": [
+        {
+          "name": "List kunjungan",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/kunjungan",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "kunjungan"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detail kunjungan",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/kunjungan/{{kunjungan_id}}",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "kunjungan",
+                "{{kunjungan_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buat kunjungan [integrasi]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/kunjungan",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "kunjungan"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"antrean_id\": \"{{antrean_id}}\",\n  \"dokter\": \"dr. Sari Wulandari\",\n  \"diagnosa\": \"Tension headache\",\n  \"kode_icd10\": \"G44.2\",\n  \"resep\": \"Paracetamol 500mg 3x1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "if (pm.response.code < 300) pm.collectionVariables.set('kunjungan_id', pm.response.json().kunjungan.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ubah data medis",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/kunjungan/{{kunjungan_id}}",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "kunjungan",
+                "{{kunjungan_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resep\": \"Ibuprofen 400mg 2x1\",\n  \"catatan\": \"Kontrol 3 hari lagi\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hapus kunjungan [integrasi]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/kunjungan/{{kunjungan_id}}",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "kunjungan",
+                "{{kunjungan_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lihat antrean [integrasi]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/antrean?poli_id={{poli_id}}",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean"
+              ],
+              "query": [
+                {
+                  "key": "poli_id",
+                  "value": "{{poli_id}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Panggil berikutnya [integrasi]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/antrean/panggil-berikutnya",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean",
+                "panggil-berikutnya"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"poli_id\": \"{{poli_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Pasien tidak hadir [integrasi]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/antrean/{{antrean_id}}",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "antrean",
+                "{{antrean_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Riwayat pasien [integrasi]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/pasien/{{pasien_id}}/riwayat",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "pasien",
+                "{{pasien_id}}",
+                "riwayat"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Log integrasi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{rekam_url}}/api/log-integrasi?limit=20",
+              "host": [
+                "{{rekam_url}}"
+              ],
+              "path": [
+                "api",
+                "log-integrasi"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status sukses', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

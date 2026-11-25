@@ -1,0 +1,245 @@
+openapi: 3.0.3
+info:
+  title: Service Rekam Kunjungan Klinik/Puskesmas
+  version: 1.0.0
+  description: |
+    Mencatat **rekam kunjungan / rekam medis** pasien (anamnesis, diagnosa, tindakan, resep).
+    Berjalan lokal dengan database SQLite dan memanggil **Service Antrean** (Vercel) lewat REST API.
+
+    Endpoint bertanda **[integrasi]** memanggil Service Antrean:
+
+    | Endpoint di service ini | Request ke Service Antrean |
+    |---|---|
+    | `POST /api/kunjungan` | `GET /api/antrean/{id}` lalu `PUT /api/antrean/{id}/status` |
+    | `DELETE /api/kunjungan/{id}` | `PUT /api/antrean/{id}/status` |
+    | `GET /api/antrean` | `GET /api/antrean` |
+    | `POST /api/antrean/panggil-berikutnya` | `POST /api/antrean/panggil-berikutnya` |
+    | `DELETE /api/antrean/{id}` | `DELETE /api/antrean/{id}` |
+    | `GET /api/pasien/{id}/riwayat` | `GET /api/pasien/{id}` |
+servers:
+  - url: http://localhost:4000
+    description: Lokal
+tags:
+  - name: Health
+  - name: Kunjungan
+  - name: Ruang Periksa
+  - name: Monitoring
+
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Cek status service dan koneksi ke Service Antrean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              example:
+                status: ok
+                service: service-rekam
+                storage: sqlite
+                antrean: { url: 'https://service-antrean.vercel.app', status: ok }
+
+  /api/kunjungan:
+    get:
+      tags: [Kunjungan]
+      summary: Daftar rekam kunjungan
+      parameters:
+        - { name: pasien_id, in: query, schema: { type: integer } }
+        - { name: antrean_id, in: query, schema: { type: integer } }
+        - { name: tanggal, in: query, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Kunjungan' } } } }
+    post:
+      tags: [Kunjungan]
+      summary: '[integrasi] Buat rekam kunjungan dari antrean yang sedang dipanggil'
+      description: |
+        1. `GET /api/antrean/{antrean_id}` ke Service Antrean. Antrean harus berstatus `dipanggil`.
+        2. Simpan rekam kunjungan ke SQLite (data pasien & poli disalin sebagai snapshot).
+        3. `PUT /api/antrean/{antrean_id}/status` → `selesai`. Bila gagal, rekam lokal dibatalkan.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/KunjunganInput' }
+            example:
+              antrean_id: 1
+              dokter: dr. Sari Wulandari
+              anamnesis: Demam 3 hari, batuk, pilek
+              tekanan_darah: 120/80
+              suhu: 38.2
+              berat_badan: 65
+              diagnosa: Infeksi saluran pernapasan atas
+              kode_icd10: J06.9
+              tindakan: Pemeriksaan fisik
+              resep: Paracetamol 500mg 3x1, Ambroxol 30mg 3x1
+      responses:
+        '201':
+          description: Rekam kunjungan dibuat dan antrean ditandai selesai
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  kunjungan: { $ref: '#/components/schemas/Kunjungan' }
+                  antrean: { type: object, description: Data antrean terbaru dari Service Antrean }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { description: Antrean tidak ditemukan di Service Antrean, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: Antrean belum dipanggil / sudah punya rekam, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '502': { $ref: '#/components/responses/BadGateway' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+
+  /api/kunjungan/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [Kunjungan]
+      summary: Detail rekam kunjungan
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Kunjungan' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [Kunjungan]
+      summary: Ubah data medis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DataMedis' }
+            example: { resep: Paracetamol 500mg 3x1 }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Kunjungan' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Kunjungan]
+      summary: '[integrasi] Hapus rekam kunjungan, antrean dikembalikan ke status dipanggil'
+      responses:
+        '200': { description: Dihapus, content: { application/json: { schema: { type: object, properties: { message: { type: string }, antrean: { type: object, nullable: true } } } } } }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/antrean:
+    get:
+      tags: [Ruang Periksa]
+      summary: '[integrasi] Lihat antrean dari Service Antrean'
+      parameters:
+        - { name: tanggal, in: query, schema: { type: string, format: date } }
+        - { name: poli_id, in: query, schema: { type: integer } }
+        - { name: status, in: query, schema: { type: string, enum: [menunggu, dipanggil, selesai, batal] } }
+      responses:
+        '200': { description: Daftar antrean }
+
+  /api/antrean/panggil-berikutnya:
+    post:
+      tags: [Ruang Periksa]
+      summary: '[integrasi] Panggil pasien berikutnya'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [poli_id], properties: { poli_id: { type: integer }, tanggal: { type: string, format: date } } }
+            example: { poli_id: 1 }
+      responses:
+        '200': { description: Antrean yang dipanggil }
+        '404': { description: Tidak ada antrean menunggu }
+
+  /api/antrean/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    delete:
+      tags: [Ruang Periksa]
+      summary: '[integrasi] Pasien tidak hadir, batalkan antrean'
+      responses:
+        '200': { description: Antrean dibatalkan }
+        '409': { description: Antrean sudah selesai / batal }
+
+  /api/pasien/{id}/riwayat:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [Ruang Periksa]
+      summary: '[integrasi] Riwayat kunjungan pasien (data pasien dari Service Antrean + rekam lokal)'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pasien: { type: object }
+                  jumlah_kunjungan: { type: integer }
+                  kunjungan: { type: array, items: { $ref: '#/components/schemas/Kunjungan' } }
+        '404': { description: Pasien tidak ditemukan }
+
+  /api/log-integrasi:
+    get:
+      tags: [Monitoring]
+      summary: Log request yang dikirim ke Service Antrean
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, default: 50, maximum: 500 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer }
+                    method: { type: string, example: PUT }
+                    url: { type: string }
+                    status: { type: integer, description: '0 = tidak dapat dihubungi' }
+                    durasi_ms: { type: integer }
+                    created_at: { type: string, format: date-time }
+
+components:
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+  responses:
+    Error: { description: Error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    BadGateway: { description: Service Antrean menolak request (misal API key salah), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unavailable: { description: Service Antrean tidak dapat dihubungi, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        details: { type: string }
+    DataMedis:
+      type: object
+      properties:
+        dokter: { type: string }
+        anamnesis: { type: string }
+        tekanan_darah: { type: string, example: 120/80 }
+        suhu: { type: number, example: 36.8 }
+        berat_badan: { type: number, example: 60 }
+        diagnosa: { type: string }
+        kode_icd10: { type: string, example: J06.9 }
+        tindakan: { type: string }
+        resep: { type: string }
+        catatan: { type: string }
+    KunjunganInput:
+      allOf:
+        - type: object
+          required: [antrean_id, dokter, diagnosa]
+          properties:
+            antrean_id: { type: integer }
+        - $ref: '#/components/schemas/DataMedis'
+    Kunjungan:
+      allOf:
+        - type: object
+          properties:
+            id: { type: integer }
+            antrean_id: { type: integer }
+            nomor_antrean: { type: string, example: A-001 }
+            pasien_id: { type: integer }
+            no_rm: { type: string }
+            nama_pasien: { type: string }
+            poli: { type: string }
+            tanggal_kunjungan: { type: string, format: date }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
+        - $ref: '#/components/schemas/DataMedis'
